@@ -1,5 +1,5 @@
 # DrallionMacOS (WIP)
-##Tips for using MacOS on the Dell Latitude Chromebook 7410, referred to as Drallion. 
+## Tips for using MacOS on the Dell Latitude Chromebook 7410, referred to as Drallion. 
 The 7410 came in various hardware configurations built to order. This guide was made using the following hardware configuration: 
 
 - Intel i7 10610U Processor
