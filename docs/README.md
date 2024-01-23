@@ -190,19 +190,19 @@ RealtekCardReaderFriend.kext
 
 ### ACPI Folder
 
-```
-DMAR.aml
-SSDT-Plug.aml
-SSDT-EC-USBX.aml (laptop version) From SSDTTime. 
-SSDT-ALS0.aml
-SSDT-IMEI.aml
-SSDT-PNLF.aml
-SSDT-HPET.aml From SSDTTime. (requires rename hotpatches, don't forget those)
-SSDT-PNLF.aml From SSDTTime. 
-ssdt-ps2m-enable.aml
-drallion-keymap.aml
-SSDT-screen.aml 
-```
+| File | Description | Rename(s) or drop needed? |
+| -------------------- | ---- | -------- |
+| DMAR.aml | Removes Reserved Regions from DMAR | Yes, drop DMAR |
+| SSDT-Plug.aml | CPU thread def and power management | No |
+| [SSDT-EC-USBX.aml "laptop version"](acpi/ssdt-ec-usbx.dsl) | Fake EC and USB power properties | No |
+| [SSDT-ALS0.aml](acpi/ssdt-als0.dsl) | Fake Ambient Light sensor for display brightness | No |
+| [SSDT-IMEI.aml](acpi/ssdt-imei.dsl) | ACPI device for IMEI - needed for ME interface to fix wake crashes | No | 
+| [SSDT-PNLF.aml](acpi/ssdt-pnlf.dsl) | Display brightness | No |
+| SSDT-HPET.aml | HPET IRQ fixes from SSDTTime | YES |
+| [ssdt-ps2m-enable.aml](acpi/ssdt-ps2m-enable.dsl) | Sets emulated PS2 mouse on | Yes, _STA to XSTA | 
+| [drallion-keymap.aml](acpi/drallion-keymap.dsl) | For keyboard keys like display brightness | No |
+| [SSDT-screen.aml](acpi/SSDT-screen.dsl) | For GPIO pinning the touchscreen | Yes, _CRS to XCRS | 
+
 
 **Note**: Some of these SSDTs were generated with [SSDTTime](https://github.com/corpnewt/SSDTTime) and some were manually written by me for *this specific* Chromebook. See the [ACPI Sample folder](https://github.com/isi95010/DrallionMacOS/tree/main/acpi) for .dsl files you can download, double check, then compile into AML.
 
