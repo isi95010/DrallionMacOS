@@ -278,6 +278,6 @@ In addition to the renames produced by SSDTTime, here are required renames and d
 * Credit to all those who contribute to the [Chrultrabook project](https://docs.chrultrabook.com)
 * Credit to [MrChromebox](https://github.com/MrChromebox?tab=repositories) for inadvertently making the firmware compatible with MacOS. 
 * Credit to ExtremeXT for forking and including the modifications for a MacOS-friendly Coreboot
-* Credit to Ethanthesleepyone for hosting builds and the MacOS-friendly flashing script
+* Credit to Ethan (ethanthesleepyone) for hosting builds and the MacOS firmware script
 * Credit to 1revenger1 for creating a new VoodooPS2 for Keyboard HID mapping
 * Credit to Coolstar for tuning Coreboot initially for Drallion 
