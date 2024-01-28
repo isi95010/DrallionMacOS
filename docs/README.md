@@ -15,9 +15,9 @@ This laptop is from 2020 and uses a Comet Lake CPU. This is the only Comet Lake 
 - [Versions Tested](#versions-tested)
 - [Requirements](#preferred-requirements)
 - [Issues](#current-issues)
-- [**Installation**](#installation)
+- [Installation](#installation)
    - [Required Steps](#these-steps-are-required-for-proper-functioning)
-   - [Coreboot 4.20.0+ CPU patch](#Working-around-CPU-changes-to-Coreboot-4.20.0+)
+   - [Coreboot 4.20.0+ CPU patch](#working-around-cpu-changes-to-coreboot)
    - [Suggested Kexts](#kexts)
    - [Suggested ACPI files and hotpatches](#acpi-folder)
 - [Misc. Information](#misc-information)
@@ -66,9 +66,9 @@ This document assumes you've already disabled write protect and successfuly flas
 - A USB mouse and keyboard in case you have trouble with the built-in input devices. 
 
 ### Current Issues
-- The main issues with Drallion currently are that the machine randomly boots MacOS directly into sleep as it thinks the lid is closed. I am currently looking into a fix via SSDT, but this may not get resolved. To work around this, just close and open the lid late in the MacOS boot process, around where IG verbose begins to print. 
+- ~~The main issue with Drallion currently is that the machine randomly boots MacOS directly into sleep as it thinks the lid is closed. I am currently looking into a fix via SSDT, but this may not get resolved. To work around this, just close and open the lid late in the MacOS boot process, around where IG verbose begins to print.~~ Update: The fix is to add `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method. 
 - The next priority issue would be 3.5mm combo jack. Unfortunately output produces static, so in the future hopefully I'll have time to create a new Layout ID and push it to the AppleALC repo. Internal speakers and mic work fine with layout-id 22, however.
-- External video output is a bit janky currently. The HDMI port and both USB-C ports can output a signal (be sure to set the port type to HDMI on them all via DeviceProperties), but the USB-C port closest to the HDMI port shares the same framebuffer as the HDMI port. Oddly, you need to plug the video cable in twice per boot for a signal to output. From there, the internal display will disable itself for some reason. You should be able to re-enable the internal display by closing and re-opening the lid. 
+- External video output is a bit janky currently. The HDMI port and both USB-C ports can output a signal (be sure to set the port type to HDMI on them all via DeviceProperties), but the USB-C port closest to the HDMI port shares the same framebuffer as the HDMI port. Oddly, you need to plug the video cable in twice per boot for a signal to output. ~~From there, the internal display will disable itself for some reason. You should be able to re-enable the internal display by closing and re-opening the lid.~~ Update: adding `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method also seems to eliminate the display turning off when an external screen is connected. 
 - The last item that comes to mind is that the power button doesn't work correctly within MacOS. You can forcefully power off by long pressing power or short pressing left Ctrl+power, but no dialog pops up to select the action, like a real MacBook. Hopefully I can come up with a fix, WIP. 
  
 >**Note**: MrChromebox coreboot 4.20 (5/15/2023 release) and higher is confirmed to cause issues with booting macOS on Chromebooks without taking specific steps. There are several methods to work around this, but the most simple recommendation is to use [ethanaobrien's script](https://ethanthesleepy.one/macos/) to flash a MacOS-optimized ROM before beginning this project. This script is an alternate of MrChromebox's with fixes to the source described in the [Chromeintosh Repo](https://github.com/Chromeintosh/coreboot). It correctly defines the CPU cores, enables the ME interface, and you don't have to compile/mod coreboot yourself (Thanks [ExtremeXT](https://github.com/ExtremeXT) for setting up the repo and making edits to coreboot source). The script also preserves VPD and offers to backup stock firmware (crucial) and clear NVRAM. 
@@ -80,7 +80,7 @@ This document assumes you've already disabled write protect and successfuly flas
 ### These steps are ***required*** for proper functioning.
 
 1. If you haven't already, use Ethan's script to flash a MacOS-optimized build of UEFI coreboot after turning off hardware write protection using the [unplug battery method](https://docs.chrultrabook.com/docs/firmware/battery.html). This version of the firmware works in other OSes too, but has optimizations for MacOS which are still compatible with Windows and Linux.  
-2. Thoroughly read the [OpenCore Guide](https://dortania.github.io/OpenCore-Install-Guide/). Use ["Laptop Coffe Lake Plus and Comet Lake"](https://dortania.github.io/OpenCore-Install-Guide/config-laptop.plist/coffee-lake-plus.html) when ready to set up your EFI. Be sure to use the Debug vesion of OpenCore initially.
+2. Thoroughly read the [OpenCore Guide](https://dortania.github.io/OpenCore-Install-Guide/). Use ["Laptop Coffe Lake Plus and Comet Lake"](https://dortania.github.io/OpenCore-Install-Guide/config-laptop.plist/coffee-lake-plus.html) when ready to set up your EFI. Be sure to use the Debug version of OpenCore initially.
    * See [here](https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/debug.html) for OpenCore debugging info
    * Enable the SysReport quirk in order to dump your ACPI tables, especially your DSDT to run through SSDTTime to generate ***required SSDT's*** as mentioned in step 9. 
 3. Re-visit this guide when you're done setting up your EFI. There are a few things we need to tweak to ensure our Chromebook works with macOS. 
@@ -136,14 +136,14 @@ This document assumes you've already disabled write protect and successfuly flas
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-### Working around CPU changes to Coreboot 4.20.0+ 
+### Working around CPU changes to Coreboot
 Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting macOS will hang even if you think you've created a plugin-type SSDT. To fix this, just use [Ethan's firmware script](https://ethanthesleepy.one/macos/) and the CPU address is solved, then you can use SSDTTime like the Dortania Guide suggests.
 ### Input devices 
 - Keyboard
     - Use [1revenger1's fork of VoodooPS2](https://github.com/1Revenger1/VoodooPS2) 
     - Compile my key mapping SSDT, or map yourself by researching HID Usage Pages and HID Usages. 
 - I2C Touchscreen (WCOM48E2)
-    - Works with VoodooI2C and VoodooI2CHID. Use an updated VoodooGPIO which includes [commit692f9e4] (https://github.com/VoodooI2C/VoodooGPIO/commit/692f9e4c6c01aee2d2953778126eea677e7b46d1). 
+    - Works with VoodooI2C and VoodooI2CHID. Use an updated VoodooGPIO which includes [commit692f9e4](https://github.com/VoodooI2C/VoodooGPIO/commit/692f9e4c6c01aee2d2953778126eea677e7b46d1). 
     - GPIO interrupt mode can be achieved using my SSDT or making your own (pin 0x117)
 - Touchpad in PS2 emulation mode
 
@@ -198,17 +198,19 @@ RealtekCardReaderFriend.kext
 | [SSDT-ALS0.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-als0.dsl) | Fake Ambient Light sensor for display brightness | No |
 | [SSDT-IMEI.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-imei.dsl) | ACPI device for IMEI - needed for ME interface to fix wake crashes | No | 
 | [SSDT-PNLF.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-pnlf.dsl) | Display brightness | No |
-| SSDT-HPET.aml | HPET IRQ fixes from SSDTTime | YES |
-| [ssdt-ps2m-enable.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ps2m-enable.dsl) | Sets emulated PS2 mouse on | Yes, _STA to XSTA | 
+| SSDT-HPET.aml | HPET IRQ fixes from SSDTTime | YES, SSDTTime will output the renames for you to copy |
+| [ssdt-ps2m-enable.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ps2m-enable.dsl) | Sets emulated PS2 mouse on | Yes, `_STA to XSTA` in base `\_SB_.PCI0.PS2M` | 
 | [drallion-keymap.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/drallion-keymap.dsl) | For keyboard keys like display brightness | No |
-| [SSDT-screen.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl) | For GPIO pinning the touchscreen | Yes, _CRS to XCRS | 
+| [SSDT-screen.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl) | For GPIO pinning the touchscreen | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.H00A` | 
 
 
 **Note**: Some of these SSDTs were generated with [SSDTTime](https://github.com/corpnewt/SSDTTime) and some were manually written by me for *this specific* Chromebook. See the [ACPI Sample folder](https://github.com/isi95010/DrallionMacOS/tree/main/acpi) for .dsl files you can download, double check, then compile into AML.
 
 #### ACPI Rename Patches
 
-In addition to the renames produced by SSDTTime, here are required renames and descriptions.
+In addition to the renames produced by SSDTTime, here are required renames and descriptions. 
+
+Take note that some renames require a Base value. 
 
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
@@ -232,14 +234,14 @@ In addition to the renames produced by SSDTTime, here are required renames and d
 | -------------------- | ------ | ------------------ |
 | Base                 | String |                    |
 | BaseSkip             | Number |    0               |
-| Comment              | String |(PS2M, Zero) to (PS2M One) for PS2 emulation|
-| Count                | Number |    2               |
+| Comment              | String | _STA method to XSTA PS2M |
+| Count                | Number |    1               |
 | Enabled              | Boolean|   True             |
-| Find                 | Data   | 575F5F5F 5053324D 00A01093 |
+| Find                 | Data   | 0014085F 535441 |
 | Limit                | Number |    0               |
 | Mask                 | Data   |      <empty>       |
 | OemTableID           | Data   |    00000000        |
-| Replace              | Data   | 575F5F5F 5053324D 01A01093 |
+| Replace              | Data   | 00140858 535441 |
 | ReplaceMask          | Data   |      <empty>       |
 | Skip                 | Number |    0               |
 | TableLength          | Number |    0               |
@@ -247,28 +249,30 @@ In addition to the renames produced by SSDTTime, here are required renames and d
 
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
-| Base                 | String |                    |
+| Base                 | String | `\_SB.PCI0.I2C0.H00A` |
 | BaseSkip             | Number |    0               |
 | Comment              | String |_CRS to XCRS in H00A for GPIO pinning of touchscreen|
-| Count                | Number |    0               |
+| Count                | Number |    1               |
 | Enabled              | Boolean|   True             |
-| Find                 | Data   | 6E00148B 00005F53 544100A4 0A0F085F 435253 |
+| Find                 | Data   | 5F435253 |
 | Limit                | Number |    0               |
 | Mask                 | Data   |      <empty>       |
 | OemTableID           | Data   |    00000000        |
-| Replace              | Data   | 6E00148B 00005F53 544100A4 0A0F0858 435253 |
+| Replace              | Data   | 58435253 |
 | ReplaceMask          | Data   |      <empty>       |
 | Skip                 | Number |    0               |
 | TableLength          | Number |    0               |
 | TableSignature       | Data   |    00000000        |
 
+***Don't forget to add any renames generated by SSDTTime.***
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Misc. Information
 
-- When formatting the SSD in Disk Utility, make sure to toggle "Show all Drives" to start partitioning.
+- When formatting the SSD in Disk Utility, make sure to toggle "Show all Devices" from the View menu to start partitioning.
 - Format the drive as `APFS` and `GUID Partition Table / GPT`
-- Map your USB ports prior to installing macOS. You can use [USBToolBox](https://github.com/USBToolBox/tool) to do that. You *will* need a second kext that goes along with it for it to work. [Repo here.](https://github.com/USBToolBox/kext). Your UTBMap.kext will not work without USBToolBox.kext. 
+- Map your USB ports prior to installing macOS. You can use [USBToolBox](https://github.com/USBToolBox/tool) to do that. You'll need a second kext that goes along with it, [USBToolBox.kext](https://github.com/USBToolBox/kext). Your UTBMap.kext will not work without USBToolBox.kext. 
 - AppleTV and other DRM protected services may not work.
 
 ### Credits
