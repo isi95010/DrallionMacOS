@@ -10,6 +10,8 @@ Take note that the Windows PC version of the 7410 is _not_ the same despite havi
 
 This laptop is from 2020 and uses a Comet Lake CPU. This is the only Comet Lake Chromebook which has an HDA audio codec compatible with AppleALC. Setting up MacOS on Chromebooks, especially this one, is not as straightfoward with other "regular" Comet Lake laptops, so don't skip any section or warning herein. 
 
+**A complete EFI is not provided in this repo, in accordance with "DIY" tradition. DIY: Do It Yourself. You will be better familiar with the process and will be able to troubleshoot on your own by starting with the [Dortania OpenCore Install Guide](https://dortania.github.io/OpenCore-Install-Guide/config-laptop.plist/coffee-lake-plus.html). Please do not request an EFI here.**
+
 ## Table of Contents
 - [Current Status Table](#current-status)
 - [Versions Tested](#versions-tested)
