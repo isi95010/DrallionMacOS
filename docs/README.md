@@ -68,7 +68,7 @@ This document assumes you've already disabled write protect and successfuly flas
 - A USB mouse and keyboard in case you have trouble with the built-in input devices. 
 
 ### Current Issues
-- ~~The main issue with Drallion currently is that the machine randomly boots MacOS directly into sleep as it thinks the lid is closed. I am currently looking into a fix via SSDT, but this may not get resolved. To work around this, just close and open the lid late in the MacOS boot process, around where IG verbose begins to print.~~ Update: The fix is to add `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method. 
+- ~~The main issue with Drallion currently is that the machine randomly boots MacOS directly into sleep as it thinks the lid is closed. I am currently looking into a fix via SSDT, but this may not get resolved. To work around this, just close and open the lid late in the MacOS boot process, around where IG verbose begins to print.~~ Update: The fix is to add `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method. See [ssdt-reg-lid0](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-reg-lid0.dsl) for more.
 - The next priority issue would be 3.5mm combo jack. Unfortunately output produces static, so in the future hopefully I'll have time to create a new Layout ID and push it to the AppleALC repo. Internal speakers and mic work fine with layout-id 22, however.
 - External video output is a bit janky currently. The HDMI port and both USB-C ports can output a signal (be sure to set the port type to HDMI on them all via DeviceProperties), but the USB-C port closest to the HDMI port shares the same framebuffer as the HDMI port. Oddly, you need to plug the video cable in twice per boot for a signal to output. ~~From there, the internal display will disable itself for some reason. You should be able to re-enable the internal display by closing and re-opening the lid.~~ Update: adding `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method also seems to eliminate the display turning off when an external screen is connected. 
 - The last item that comes to mind is that the power button doesn't work correctly within MacOS. You can forcefully power off by long pressing power or short pressing left Ctrl+power, but no dialog pops up to select the action, like a real MacBook. Hopefully I can come up with a fix, WIP. 
@@ -102,6 +102,7 @@ This document assumes you've already disabled write protect and successfuly flas
 
 6. `DeviceProperties -> Add -> PciRoot(0x0)/Pci(0x2,0x0)` 
 
+ **`disable-telemetry-load` seems to be required to boot MacOS. Don't forget it!**
  The following modifications are recommended to enable graphics acceleration, enable smooth LCD backlight stepping, correct the HDMI output signal type, etc: 
   
    | Key                                        | Type   | Value    |
@@ -109,7 +110,6 @@ This document assumes you've already disabled write protect and successfuly flas
    | AAPL,ig-platform-id                        | data   | 0900A53E |
    | device-id                                  | data   | 9B3E0000 |
    | framebuffer-patch-enable                   | data   | 01000000 |
-   | framebuffer-cursormem                      | data   | 00009000 |
    | framebuffer-con0-enable                    | data   | 01000000 |
    | framebuffer-con0-type                      | data   | 00020000 |
    | framebuffer-con1-enable                    | data   | 01000000 |
@@ -122,12 +122,14 @@ This document assumes you've already disabled write protect and successfuly flas
    | enable-backlight-registers-alternative-fix | data   | 01000000 | 
    | enable-backlight-smoother                  | data   | 01000000 |
    | disable-telemetry-load                     | data   | 01000000 |   
+   | rps-control				| data	 | 01000000 | 
+   | enable-hdmi20				| data	 | 01000000 |
      
    > **You are free to experiment with different `AAPL,ig-platform-id`'s but 0900A53E seems to work well**
 7. **`MacBookPro15,4` works with Mojave 10.15.4 through Sonoma** with the proper SecureBootModel and APFS settings in your OpenCore config. Anything before or after those MacOS versions is not covered here. You may find a better suited SMBIOS to mimic or for unsupported future OS versions. Experiment as you wish. 
 8. It's recommended to use [1revenger1's fork of VoodooPS2](https://github.com/1Revenger1/VoodooPS2) which allows for mapping keys with HID Usages. You can see my SSDT here, but you'll still probably want to customize within MacOS to your liking.
 9. It's recommended to use SSDTTime to generate a fake EC (laptop verion), HPET (IRQ conflicts) and PNLF (requred for display backlight control). Be sure to copy any resulting rename patches from `oc_patches.plist` into your `config.plist` under `ACPI -> Patch`. 
-10. Map your USB ports before installing using Windows. If you can't be bothered to install Windows, mapping can be done in WinPE. See [USBToolbox](https://github.com/USBToolBox). Remember you need the USBToolbox.kext *and* your generated UTBMap.kext.    
+10. Map your USB ports before installing using Windows. If you don't want to install Windows, mapping can be done in WinPE. See [USBToolbox](https://github.com/USBToolBox). Remember you need the USBToolbox.kext *and* your generated UTBMap.kext.    
 11. Snapshot (cmd + r) or (ctrl + r) your `config.plist`. 
 
     > **Warning**: Don't use "clean snapshot" (`ctrl/cmd+shift+r`) in Propertree after initially copying the sample as config.plist. This can **wipe** some work. Only do *regular* snapshots after first starting. (`ctrl/cmd+r`)
@@ -168,12 +170,12 @@ SMCLightSensor.kext
 ECEnabler.kext
 AppleALC.kext
 WhateverGreen.kext
-AirtportItlwm.kext
+AirtportItlwm.kext (use the [alpha](https://github.com/OpenIntelWireless/itlwm/releases/tag/v2.3.0-alpha), and be aware there are different kexts for different MacOS versions)
+USBToolbox.kext
+UTBMap.kext - create this by mapping usb ports
 IntelBluetoothFirmware.kext
 IntelBTPatcher.kext
 BlueToolFixup.kext
-USBToolbox.kext
-UTBMap.kext
 VoodooInput.kext (from https://github.com/acidanthera/VoodooInput) 
 VoodooGPIO.kext (built using commit commit692f9e4)
 VoodooI2CServices.kext
@@ -195,18 +197,19 @@ RealtekCardReaderFriend.kext
 | File | Description | Rename(s) or drop needed? |
 | -------------------- | ---- | -------- |
 | DMAR.aml | Removes Reserved Regions from DMAR | Yes, drop DMAR |
-| SSDT-Plug.aml | CPU thread def and power management | No |
+| [ssdt-reg-lid0.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-reg-lid0.dsl) | Lid status "sync" to ensure laptop doesn't sleep immediately after booting | No |
 | [SSDT-EC-USBX.aml "laptop version"](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ec-usbx.dsl) | Fake EC and USB power properties | No |
 | [SSDT-ALS0.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-als0.dsl) | Fake Ambient Light sensor for display brightness | No |
 | [SSDT-IMEI.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-imei.dsl) | ACPI device for IMEI - needed for ME interface to fix wake crashes | No | 
 | [SSDT-PNLF.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-pnlf.dsl) | Display brightness | No |
 | SSDT-HPET.aml | HPET IRQ fixes from SSDTTime | YES, SSDTTime will output the renames for you to copy |
+| [SSDT-Plug.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-PLUG.dsl) | CPU thread def and plugin-type for power management | No |
 | [ssdt-ps2m-enable.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ps2m-enable.dsl) | Sets emulated PS2 mouse on | Yes, `_STA to XSTA` in base `\_SB_.PCI0.PS2M` | 
 | [drallion-keymap.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/drallion-keymap.dsl) | For keyboard keys like display brightness | No |
 | [SSDT-screen.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl) | For GPIO pinning the touchscreen | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.H00A` | 
 
 
-**Note**: Some of these SSDTs were generated with [SSDTTime](https://github.com/corpnewt/SSDTTime) and some were manually written by me for *this specific* Chromebook. See the [ACPI Sample folder](https://github.com/isi95010/DrallionMacOS/tree/main/acpi) for .dsl files you can download, double check, then compile into AML.
+**Note**: Some of these SSDTs were generated with [SSDTTime](https://github.com/corpnewt/SSDTTime) and some were manually written by me for *this specific* Chromebook. See the [ACPI Sample folder](https://github.com/isi95010/DrallionMacOS/tree/main/acpi) for .dsl files you can download, double check, then compile into AML. From there, add them to your OpenCore ACPI folder, and Snapshot your config.plist. See the next section for critical rename hotpatches. 
 
 #### ACPI Rename Patches
 
@@ -230,13 +233,30 @@ Take note that some renames require a Base value.
 | Skip                 | Number |    0               |
 | TableLength          | Number |    0               |
 | TableSignature       | Data   |    00000000        |
+
+| Key                  | Type   | Value              |
+| -------------------- | ------ | ------------------ |
+| Base                 | String |                    |
+| BaseSkip             | Number |    0               |
+| Comment              | String |_REG to XREG - for ssdt-reg-lid0|
+| Count                | Number |    0               |
+| Enabled              | Boolean|   True             |
+| Find                 | Data   | 5F524547 |
+| Limit                | Number |    0               |
+| Mask                 | Data   |      <empty>       |
+| OemTableID           | Data   |    00000000        |
+| Replace              | Data   | 58524547 |
+| ReplaceMask          | Data   |      <empty>       |
+| Skip                 | Number |    0               |
+| TableLength          | Number |    0               |
+| TableSignature       | Data   |    00000000        |
 	
 	
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
 | Base                 | String |                    |
 | BaseSkip             | Number |    0               |
-| Comment              | String | _STA method to XSTA PS2M |
+| Comment              | String | _STA method to XSTA PS2M for ssdt-ps2m-enable |
 | Count                | Number |    1               |
 | Enabled              | Boolean|   True             |
 | Find                 | Data   | 0014085F 535441 |
