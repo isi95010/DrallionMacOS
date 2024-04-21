@@ -182,7 +182,7 @@ VoodooGPIO.kext (built using commit commit692f9e4)
 VoodooI2CServices.kext
 VoodooI2C.kext
 VoodooI2CHID.kext
-VoodooI2CElan.kext
+VoodooI2CElan.kext (built using commit 42d8f31)
 VoodooPS2Controller.kext (from https://github.com/1Revenger1/VoodooPS2)
 VoodooPS2Keyboard.kext
 VoodooPS2Mouse.kext
@@ -209,7 +209,7 @@ RealtekCardReaderFriend.kext
 | ~~[ssdt-ps2m-enable.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ps2m-enable.dsl)~~ | ~~Sets emulated PS2 mouse on~~ | ~~Yes, `_STA to XSTA` in base `\_SB_.PCI0.PS2M`~~ | 
 | [drallion-keymap.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/drallion-keymap.dsl) | For keyboard keys like display brightness | No |
 | [SSDT-screen.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl) | For GPIO pinning the touchscreen | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.H00A` | 
-| [SSDT-I2C-elan23.aml]([https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-I2C-elan23.dsl)) | For GPIO pinning the touchpad | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.D015` | 
+| [SSDT-I2C-elan23.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-I2C-elan23.dsl) | For GPIO pinning the touchpad | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.D015` | 
 
 
 **Note**: Some of these SSDTs were generated with [SSDTTime](https://github.com/corpnewt/SSDTTime) and some were manually written by me for *this specific* Chromebook. See the [ACPI Sample folder](https://github.com/isi95010/DrallionMacOS/tree/main/acpi) for .dsl files you can download, double check, then compile into AML. From there, add them to your OpenCore ACPI folder, and Snapshot your config.plist. See the next section for critical rename hotpatches. 
