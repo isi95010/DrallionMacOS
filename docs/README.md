@@ -31,21 +31,21 @@ This laptop is from 2020 and uses a Comet Lake CPU. This is the only Comet Lake 
 | WiFi               | Working              | See [OpenIntelWireless](https://openintelwireless.github.io). Seems to work more reliably by Fixing DMAR.                            |
 | Bluetooth          | Working              | See [OpenIntelWireless](https://openintelwireless.github.io)                                                                         |
 | Sleep/Wake         | Working              | See section about Coreboot fork to fix apps crashing when waking from sleep.                   |
-| Trackpad           | Working              | Works in PS2 Mode - advanced ACPI understanding recommended. See section in [Input Devices](#input-devices).                       | 
+| Trackpad           | Working              | Works with newer commit of VoodooI2CElan. See section in [Input Devices](#input-devices).                       | 
 | Graphics Accel.    | Working              |                                                                                               |
-| Internal Speakers  | Working              | AppleALC.kext using layout-id 22 on Catalina+. Combo jack needs new layout, WIP                            |
+| Internal Speakers  | Working              | AppleALC.kext using layout-id 22 on Catalina+. Combo jack needs HDA Verb sent, IE `alc-verb 0x19 0x707 0x24`                            |
 | Keyboard backlight | Not Working in MacOS |                                                                                               |
 | Brightness keys | Working | Use 1revenger1's fork of VoodooPS2 and look at my SSDT. See section in [Input Devices](#input-devices). |
 | Keyboard & Remaps  | Working              | Use 1revenger1's fork of VoodooPS2 and look at my SSDT. See section in [Input Devices](#input-devices).                                   |
 | SD Card Reader     | Working              | It is a Realtek PCIE MicroSD card reader. It seems to work with [0xFirewolf's kext](https://github.com/0xFireWolf/RealtekCardReader).             |
-| Headphone Jack     | WIP                  | Combo jack needs new layout, WIP                                                              |
+| Headphone Jack     | WIP                  | Combo jack needs HDA Verb sent, IE `alc-verb 0x19 0x707 0x24`                                                             |
 | HDMI Audio         | Working              |                                                                                               |
 | HDMI Video         | Working              | Somewhat janky detecting displays but works in a roundabout way.                              |
 | USB Ports          | Working              | Working with USB mapping                                                                      |
 | Webcam             | Working              | Working with USB mapping                                                                      |
 | Internal Mic.      | Working              | AppleALC.kext using layout-id 22 on Catalina+                                                             |
 | Shutdown / Restart | Working              |                                                                                               |    
-| Continuity         | Untested             | Will not work with Intel wireless card.                                                       |    
+| Continuity         | Untested             | Browser handoff seems to work from iPhone. Haven't tested more features                                                       |    
 | NVRAM              | Working              | Native NVRAM working with DevirtualiseMMIO set to False                                       |
                                                                           
 --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -69,11 +69,11 @@ This document assumes you've already disabled write protect and successfuly flas
 
 ### Current Issues
 - ~~The main issue with Drallion currently is that the machine randomly boots MacOS directly into sleep as it thinks the lid is closed. I am currently looking into a fix via SSDT, but this may not get resolved. To work around this, just close and open the lid late in the MacOS boot process, around where IG verbose begins to print.~~ Update: The fix is to add `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method. See [ssdt-reg-lid0](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-reg-lid0.dsl) for more.
-- The next priority issue would be 3.5mm combo jack. Unfortunately output produces static, so in the future hopefully I'll have time to create a new Layout ID and push it to the AppleALC repo. Internal speakers and mic work fine with layout-id 22, however.
+- ~~The next priority issue would be 3.5mm combo jack. Unfortunately output produces static, so in the future hopefully I'll have time to create a new Layout ID and push it to the AppleALC repo.~~ Combo jack needs alcverbs=1 boot-arg and an HDA Verb sent, IE `alc-verb 0x19 0x707 0x24`. Internal speakers and mic work fine with layout-id 22, however.
 - External video output is a bit janky currently. The HDMI port and both USB-C ports can output a signal (be sure to set the port type to HDMI on them all via DeviceProperties), but the USB-C port closest to the HDMI port shares the same framebuffer as the HDMI port. Oddly, you need to plug the video cable in twice per boot for a signal to output. ~~From there, the internal display will disable itself for some reason. You should be able to re-enable the internal display by closing and re-opening the lid.~~ Update: adding `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method also seems to eliminate the display turning off when an external screen is connected. 
 - The last item that comes to mind is that the power button doesn't work correctly within MacOS. You can forcefully power off by long pressing power or short pressing left Ctrl+power, but no dialog pops up to select the action, like a real MacBook. Hopefully I can come up with a fix, WIP. 
  
->**Note**: MrChromebox coreboot 4.20 (5/15/2023 release) and higher is confirmed to cause issues with booting macOS on Chromebooks without taking specific steps. There are several methods to work around this, but the most simple recommendation is to use [ethanaobrien's script](https://ethanthesleepy.one/macos/) to flash a MacOS-optimized ROM before beginning this project. This script is an alternate of MrChromebox's with fixes to the source described in the [Chromeintosh Repo](https://github.com/Chromeintosh/coreboot). It correctly defines the CPU cores, enables the ME interface, and you don't have to compile/mod coreboot yourself (Thanks [ExtremeXT](https://github.com/ExtremeXT) for setting up the repo and making edits to coreboot source). The script also preserves VPD and offers to backup stock firmware (crucial) and clear NVRAM. 
+>**Note**: MrChromebox coreboot 4.20 (5/15/2023 release) and higher is confirmed to cause issues with booting macOS on Chromebooks without taking specific steps. There are several methods to work around this, but the most simple recommendation is to build Coreboot with the mods in the [Chromeintosh Repo](https://github.com/Chromeintosh/coreboot). Don't forget to consult the Chrultrabook Docs site to preserve your VPD.
 
 ## Installation
 
@@ -81,14 +81,14 @@ This document assumes you've already disabled write protect and successfuly flas
 
 ### These steps are ***required*** for proper functioning.
 
-1. If you haven't already, use Ethan's script to flash a MacOS-optimized build of UEFI coreboot after turning off hardware write protection using the [unplug battery method](https://docs.chrultrabook.com/docs/firmware/battery.html). This version of the firmware works in other OSes too, but has optimizations for MacOS which are still compatible with Windows and Linux.  
+1. If you haven't already, flash MrChromebox Coreboot (ideally with the mods from Chromeintosh) onto your Chromebook after turning off hardware write protection using the [unplug battery method](https://docs.chrultrabook.com/docs/firmware/battery.html). The mods from Chromeintosh work in other OSes too, but building it this was has optimizations for MacOS. Again, they are still compatible with Windows and Linux.  
 2. Thoroughly read the [OpenCore Guide](https://dortania.github.io/OpenCore-Install-Guide/). Use ["Laptop Coffe Lake Plus and Comet Lake"](https://dortania.github.io/OpenCore-Install-Guide/config-laptop.plist/coffee-lake-plus.html) when ready to set up your EFI. Be sure to use the Debug version of OpenCore initially.
    * See [here](https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/debug.html) for OpenCore debugging info
    * Enable the SysReport quirk in order to dump your ACPI tables, especially your DSDT to run through SSDTTime to generate ***required SSDT's*** as mentioned in step 9. 
 3. Re-visit this guide when you're done setting up your EFI. There are a few things we need to tweak to ensure our Chromebook works with macOS. 
 4. Fixing CPU core (thread) definition and plugin-type as mentioned in Current Issues
-	* The simplest way: Flash using [Ethan's script](https://ethanthesleepy.one/macos/) instead of MrChromebox's.
-	* There are other methods, but we won't cover them here.
+	* My recommended way: Build and flash the Chromeintosh fork of MrChromebox's Coreboot.
+	* Use SSDT-Plug-Alt.aml
 5. In your `config.plist`, under `Booter -> Quirks` set `ProtectMemoryRegions` to `TRUE` and (_THIS IS IMPORTANT_) `DevirtualiseMmio` to `FALSE`. Other than the defaults in the Dortania guide, it should look something like this in your `config.plist` when done correctly:
 
    | Quirk                | Type | Value    |
@@ -141,7 +141,7 @@ This document assumes you've already disabled write protect and successfuly flas
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ### Working around CPU changes to Coreboot
-Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting macOS will hang even if you think you've created a plugin-type SSDT. To fix this, just use [Ethan's firmware script](https://ethanthesleepy.one/macos/) and the CPU address is solved, then you can use SSDTTime like the Dortania Guide suggests.
+Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting macOS will hang even if you think you've created a plugin-type SSDT. To fix this, build Coreboot for Drallion based on the Chromeintosh fork and the CPU address, among other things, is solved. Then you can use SSDTTime like the Dortania Guide suggests.
 ### Input devices 
 - Keyboard
     - Use [1revenger1's fork of VoodooPS2](https://github.com/1Revenger1/VoodooPS2) 
@@ -149,12 +149,13 @@ Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting 
 - I2C Touchscreen (WCOM48E2)
     - Works with VoodooI2C and VoodooI2CHID. Use an updated VoodooGPIO which includes [commit692f9e4](https://github.com/VoodooI2C/VoodooGPIO/commit/692f9e4c6c01aee2d2953778126eea677e7b46d1). 
     - GPIO interrupt mode can be achieved using my SSDT or making your own (pin 0x117)
-- Touchpad in PS2 emulation mode
+- ~~Touchpad in PS2 emulation mode~~
 
->Sadly, the Elan touchpad does not work in I2C mode in MacOS and this may never change. Luckily, the hardware supports emulating the touchpad as a PS2 mouse (with VoodooPS2Mouse.kext). Only one ACPI rename patch is required to enable PS2 emulation, and another rename + SSDT hotpatch to "enable" the PS2M device in ACPI. PS2 mode limits the touchpad to single finger input and click/tap. IE, no scrolling using 2 fingers or right-clicking with two-finger taps. You can right click by clicking or tapping on the bottom right side. Having such limited gestures in PS2 mode is not too bad if you have a Drallion with a compatible touchscreen, like the WCOM48E2. You can use multi-finger gestures with the touchscreen. Fortunately, the touchpad will still work in I2C mode in Windows and Linux because PS2 emulation mode in MacOS is achieved with hotpaching using OpenCore. Keep in mind that if you use other OSes, you may need to fully shutdown before restarting in MacOS (IE, cold boot) to reactivate PS2 mode.
+>~~Sadly, the Elan touchpad does not work in I2C mode in MacOS and this may never change. Luckily, the hardware supports emulating the touchpad as a PS2 mouse (with VoodooPS2Mouse.kext). Only one ACPI rename patch is required to enable PS2 emulation, and another rename + SSDT hotpatch to "enable" the PS2M device in ACPI. PS2 mode limits the touchpad to single finger input and click/tap. IE, no scrolling using 2 fingers or right-clicking with two-finger taps. You can right click by clicking or tapping on the bottom right side. Having such limited gestures in PS2 mode is not too bad if you have a Drallion with a compatible touchscreen, like the WCOM48E2. You can use multi-finger gestures with the touchscreen. Fortunately, the touchpad will still work in I2C mode in Windows and Linux because PS2 emulation mode in MacOS is achieved with hotpaching using OpenCore. Keep in mind that if you use other OSes, you may need to fully shutdown before restarting in MacOS (IE, cold boot) to reactivate PS2 mode.~~
 
 - Elan Touchpad in I2C mode
-	- If you have any suggestions please share.
+	- Works with VoodooI2C release + VoodooI2CElan with the commit [#42d8f31](https://github.com/VoodooI2C/VoodooI2CELAN/commit/42d8f31aa964be557efbfbc9f8ffca4f436558a4). Credit to 1revenger1 for identifying the problem. 
+        - GPIO interrupt mode can be achieved using my SSDT or making your own (pin 0x23)
 
 ### Kexts
 
@@ -181,6 +182,7 @@ VoodooGPIO.kext (built using commit commit692f9e4)
 VoodooI2CServices.kext
 VoodooI2C.kext
 VoodooI2CHID.kext
+VoodooI2CElan.kext
 VoodooPS2Controller.kext (from https://github.com/1Revenger1/VoodooPS2)
 VoodooPS2Keyboard.kext
 VoodooPS2Mouse.kext
@@ -204,9 +206,10 @@ RealtekCardReaderFriend.kext
 | [SSDT-PNLF.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-pnlf.dsl) | Display brightness | No |
 | SSDT-HPET.aml | HPET IRQ fixes from SSDTTime | YES, SSDTTime will output the renames for you to copy |
 | [SSDT-Plug.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-PLUG.dsl) | CPU thread def and plugin-type for power management | No |
-| [ssdt-ps2m-enable.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ps2m-enable.dsl) | Sets emulated PS2 mouse on | Yes, `_STA to XSTA` in base `\_SB_.PCI0.PS2M` | 
+| ~~[ssdt-ps2m-enable.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ps2m-enable.dsl)~~ | ~~Sets emulated PS2 mouse on~~ | ~~Yes, `_STA to XSTA` in base `\_SB_.PCI0.PS2M`~~ | 
 | [drallion-keymap.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/drallion-keymap.dsl) | For keyboard keys like display brightness | No |
 | [SSDT-screen.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl) | For GPIO pinning the touchscreen | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.H00A` | 
+| [SSDT-I2C-elan23.aml]([https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-screen.dsl](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/SSDT-I2C-elan23.dsl)) | For GPIO pinning the touchpad | Yes, `_CRS to XCRS` in base `\_SB_.PCI0.I2C0.D015` | 
 
 
 **Note**: Some of these SSDTs were generated with [SSDTTime](https://github.com/corpnewt/SSDTTime) and some were manually written by me for *this specific* Chromebook. See the [ACPI Sample folder](https://github.com/isi95010/DrallionMacOS/tree/main/acpi) for .dsl files you can download, double check, then compile into AML. From there, add them to your OpenCore ACPI folder, and Snapshot your config.plist. See the next section for critical rename hotpatches. 
@@ -217,7 +220,7 @@ In addition to the renames produced by SSDTTime, here are required renames and d
 
 Take note that some renames require a Base value. 
 
-| Key                  | Type   | Value              |
+~~| Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
 | Base                 | String |                    |
 | BaseSkip             | Number |    0               |
@@ -232,7 +235,7 @@ Take note that some renames require a Base value.
 | ReplaceMask          | Data   |      <empty>       |
 | Skip                 | Number |    0               |
 | TableLength          | Number |    0               |
-| TableSignature       | Data   |    00000000        |
+| TableSignature       | Data   |    00000000        |~~
 
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
@@ -252,7 +255,7 @@ Take note that some renames require a Base value.
 | TableSignature       | Data   |    00000000        |
 	
 	
-| Key                  | Type   | Value              |
+~~| Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
 | Base                 | String |                    |
 | BaseSkip             | Number |    0               |
@@ -267,7 +270,7 @@ Take note that some renames require a Base value.
 | ReplaceMask          | Data   |      <empty>       |
 | Skip                 | Number |    0               |
 | TableLength          | Number |    0               |
-| TableSignature       | Data   |    00000000        |
+| TableSignature       | Data   |    00000000        |~~
 
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
@@ -286,7 +289,24 @@ Take note that some renames require a Base value.
 | TableLength          | Number |    0               |
 | TableSignature       | Data   |    00000000        |
 
-***Don't forget to add any renames generated by SSDTTime.***
+| Key                  | Type   | Value              |
+| -------------------- | ------ | ------------------ |
+| Base                 | String | `\_SB.PCI0.I2C0.D015` |
+| BaseSkip             | Number |    0               |
+| Comment              | String |_CRS to XCRS in H00A for GPIO pinning of touchpad|
+| Count                | Number |    1               |
+| Enabled              | Boolean|   True             |
+| Find                 | Data   | 5F435253 |
+| Limit                | Number |    0               |
+| Mask                 | Data   |      <empty>       |
+| OemTableID           | Data   |    00000000        |
+| Replace              | Data   | 58435253 |
+| ReplaceMask          | Data   |      <empty>       |
+| Skip                 | Number |    0               |
+| TableLength          | Number |    0               |
+| TableSignature       | Data   |    00000000        |
+
+***Don't forget to add any renames generated by SSDTTime, namely for HPET SSDT.***
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -304,6 +324,6 @@ Take note that some renames require a Base value.
 * Credit to all those who contribute to the [Chrultrabook project](https://docs.chrultrabook.com)
 * Credit to [MrChromebox](https://github.com/MrChromebox?tab=repositories) for inadvertently making the firmware compatible with MacOS. 
 * Credit to ExtremeXT for forking and including the modifications for a MacOS-friendly Coreboot
-* Credit to Ethan (ethanthesleepyone) for hosting builds and the MacOS firmware script
-* Credit to 1revenger1 for creating a new VoodooPS2 for Keyboard HID mapping
+* Credit to Ethan (ethanthesleepyone) for hosting builds and the MacOS firmware script originally. It's been taken down for the time being. 
+* Credit to 1revenger1 for creating a new VoodooPS2 for Keyboard HID mapping, fixing VoodooI2CElan, and loads of guidance. 
 * Credit to Coolstar for tuning Coreboot initially for Drallion 
