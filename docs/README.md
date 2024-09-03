@@ -154,8 +154,9 @@ Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting 
 >~~Sadly, the Elan touchpad does not work in I2C mode in MacOS and this may never change. Luckily, the hardware supports emulating the touchpad as a PS2 mouse (with VoodooPS2Mouse.kext). Only one ACPI rename patch is required to enable PS2 emulation, and another rename + SSDT hotpatch to "enable" the PS2M device in ACPI. PS2 mode limits the touchpad to single finger input and click/tap. IE, no scrolling using 2 fingers or right-clicking with two-finger taps. You can right click by clicking or tapping on the bottom right side. Having such limited gestures in PS2 mode is not too bad if you have a Drallion with a compatible touchscreen, like the WCOM48E2. You can use multi-finger gestures with the touchscreen. Fortunately, the touchpad will still work in I2C mode in Windows and Linux because PS2 emulation mode in MacOS is achieved with hotpaching using OpenCore. Keep in mind that if you use other OSes, you may need to fully shutdown before restarting in MacOS (IE, cold boot) to reactivate PS2 mode.~~
 
 - Elan Touchpad in I2C mode
-	- Works with VoodooI2C release + VoodooI2CElan with the commit [#42d8f31](https://github.com/VoodooI2C/VoodooI2CELAN/commit/42d8f31aa964be557efbfbc9f8ffca4f436558a4). Credit to 1revenger1 for identifying the problem. 
-        - GPIO interrupt mode can be achieved using my SSDT or making your own (pin 0x23)
+	- Works with VoodooI2C release + VoodooI2CElan with the commit [#42d8f31](https://github.com/VoodooI2C/VoodooI2CELAN/commit/42d8f31aa964be557efbfbc9f8ffca4f436558a4). Credit to 1revenger1 for identifying the problem.
+	  - Until the VoodooI2C org releases the next version with the commit applied, you must build the kext yourself. Setting up the [build environment for VoodooI2C](https://voodooi2c.github.io/#Build%20Environment/Build%20Environment) seems a lot easier in Catalina, but the actual [fix]((https://github.com/VoodooI2C/VoodooI2CELAN/commit/42d8f31aa964be557efbfbc9f8ffca4f436558a4)) is easy to apply and then build the kext with.
+	- GPIO interrupt mode can be achieved using my SSDT or making your own (pin 0x23)
 
 ### Kexts
 
@@ -199,7 +200,7 @@ RealtekCardReaderFriend.kext
 | File | Description | Rename(s) or drop needed? |
 | -------------------- | ---- | -------- |
 | DMAR.aml | Removes Reserved Regions from DMAR | Yes, drop DMAR |
-| [ssdt-reg-lid0.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-reg-lid0.dsl) | Lid status "sync" to ensure laptop doesn't sleep immediately after booting | No |
+| [ssdt-reg-lid0.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-reg-lid0.dsl) | Lid status "sync" to ensure laptop doesn't sleep immediately after booting | Yes, _REG to XREG |
 | [SSDT-EC-USBX.aml "laptop version"](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-ec-usbx.dsl) | Fake EC and USB power properties | No |
 | [SSDT-ALS0.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-als0.dsl) | Fake Ambient Light sensor for display brightness | No |
 | [SSDT-IMEI.aml](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-imei.dsl) | ACPI device for IMEI - needed for ME interface to fix wake crashes | No | 
@@ -220,22 +221,22 @@ In addition to the renames produced by SSDTTime, here are required renames and d
 
 Take note that some renames require a Base value. 
 
-~~| Key                  | Type   | Value              |
+| ~~Key~~                  | ~~Type~~   | ~~Value~~              |
 | -------------------- | ------ | ------------------ |
-| Base                 | String |                    |
-| BaseSkip             | Number |    0               |
-| Comment              | String |(PS2M, Zero) to (PS2M One) for PS2 Trackpad|
-| Count                | Number |    2               |
-| Enabled              | Boolean|   True             |
-| Find                 | Data   | 575F5F5F 5053324D 00A01093 |
-| Limit                | Number |    0               |
-| Mask                 | Data   |      <empty>       |
-| OemTableID           | Data   |    00000000        |
-| Replace              | Data   | 575F5F5F 5053324D 01A01093 |
-| ReplaceMask          | Data   |      <empty>       |
-| Skip                 | Number |    0               |
-| TableLength          | Number |    0               |
-| TableSignature       | Data   |    00000000        |~~
+| ~~Base~~                 | ~~String~~ |                    |
+| ~~BaseSkip~~             | ~~Number~~ |    ~~0~~               |
+| ~~Comment~~              | ~~String~~ | ~~(PS2M, Zero) to (PS2M One) for PS2 Trackpad~~ |
+| ~~Count~~                | ~~Number~~ |    ~~2~~               |
+| ~~Enabled~~              | ~~Boolean~~ |   ~~True~~             |
+| ~~Find~~                 | ~~Data~~   | ~~575F5F5F 5053324D 00A01093~~ |
+| ~~Limit~~                | ~~Number~~ |    ~~0~~               |
+| ~~Mask~~                 | ~~Data~~   |      ~~<empty>~~       |
+| ~~OemTableID~~           | ~~Data~~   |    ~~00000000~~        |
+| ~~Replace~~              | ~~Data~~   | ~~575F5F5F 5053324D 01A01093~~ |
+| ~~ReplaceMask~~          | ~~Data~~   |      ~~<empty>~~       |
+| ~~Skip~~                 | ~~Number~~ |    ~~0~~               |
+| ~~TableLength~~          | ~~Number~~ |    ~~0~~               |
+| ~~TableSignature~~       | ~~Data~~   |    ~~00000000~~        |
 
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
@@ -255,22 +256,22 @@ Take note that some renames require a Base value.
 | TableSignature       | Data   |    00000000        |
 	
 	
-~~| Key                  | Type   | Value              |
+| ~~Key~~                  | ~~Type~~   | ~~Value~~              |
 | -------------------- | ------ | ------------------ |
-| Base                 | String |                    |
-| BaseSkip             | Number |    0               |
-| Comment              | String | _STA method to XSTA PS2M for ssdt-ps2m-enable |
-| Count                | Number |    1               |
-| Enabled              | Boolean|   True             |
-| Find                 | Data   | 0014085F 535441 |
-| Limit                | Number |    0               |
-| Mask                 | Data   |      <empty>       |
-| OemTableID           | Data   |    00000000        |
-| Replace              | Data   | 00140858 535441 |
-| ReplaceMask          | Data   |      <empty>       |
-| Skip                 | Number |    0               |
-| TableLength          | Number |    0               |
-| TableSignature       | Data   |    00000000        |~~
+| ~~Base~~                 | ~~String~~ |                    |
+| ~~BaseSkip~~             | ~~Number~~ |   ~~0~~               |
+| ~~Comment~~              | ~~String~~ | ~~_STA method to XSTA PS2M for ssdt-ps2m-enable~~ |
+| ~~Count~~                | ~~Number~~ |    ~~1~~               |
+| ~~Enabled~~              | ~~Boolean~~ |  ~~True~~             |
+| ~~Find~~                 | ~~Data~~   | ~~0014085F 535441~~ |
+| ~~Limit~~                | ~~Number~~ |    ~~0~~               |
+| ~~Mask~~                 | ~~Data~~   |      ~~<empty>~~       |
+| ~~OemTableID~~           | ~~Data~~   |    ~~00000000~~        |
+| ~~Replace~~              | ~~Data~~   | ~~00140858 535441~~ |
+| ~~vvvReplaceMask~~          | ~~Data~~   |      ~~<empty>~~       |
+| ~~Skip~~                 | ~~Number~~ |    ~~0~~               |
+| ~~TableLength~~          | ~~Number~~ |    ~~0~~               |
+| ~~TableSignature~~       | ~~Data~~   |    ~~00000000~~        |
 
 | Key                  | Type   | Value              |
 | -------------------- | ------ | ------------------ |
@@ -316,14 +317,20 @@ Take note that some renames require a Base value.
 - Format the drive as `APFS` and `GUID Partition Table / GPT`
 - Map your USB ports prior to installing macOS. You can use [USBToolBox](https://github.com/USBToolBox/tool) to do that. You'll need a second kext that goes along with it, [USBToolBox.kext](https://github.com/USBToolBox/kext). Your UTBMap.kext will not work without USBToolBox.kext. 
 - AppleTV and other DRM protected services may not work.
+- Optional: if you'd like to try using Hibernation, [HibernationFixup.kext](https://github.com/acidanthera/HibernationFixup) can help.
+  - Set MacOS Hibernate mode to 3 using `pmset`(IE `sudo pmset standby 3').
+  - HibernationFixup.kext needs to be given a boot-arg with bits set. I simply use `hbfx-ahbm=1`
+  - In `pmset`, specify standby times based at the default 50% battery threshold. Personally, I've set `standbydelayhigh` at 3600 seconds and `standbydelaylow` at 1800 seconds.
+    - This means that the laptop will hibernate after 30 minutes if the battery is less than 50%, but will hibernate after one hour if the battery has more than 50% remaining.
+  - You can fine tune hibernation further, but I won't cover that. I will say hibernation helps massively with battery drain, since regular sleep does drain the battery quite a bit on this laptop. 
 
 ### Credits
 
-* Credit to [mine-man30000](https://github.com/mine-man3000/macOS-Dragonair) for the guide this is based on
-* Credit to [meghan06](https://github.com/meghan06/) for the guide that mine-man3000's is based on, and for starting the Chromeintosh Org
-* Credit to all those who contribute to the [Chrultrabook project](https://docs.chrultrabook.com)
+* Credit to [mine-man30000](https://github.com/mine-man3000/macOS-Dragonair) for the guide this is based on.
+* Credit to [meghan06](https://github.com/meghan06/) for the guide that mine-man3000's is based on, and for starting the Chromeintosh Org.
+* Credit to all those who contribute to the [Chrultrabook project](https://docs.chrultrabook.com).
 * Credit to [MrChromebox](https://github.com/MrChromebox?tab=repositories) for inadvertently making the firmware compatible with MacOS. 
-* Credit to ExtremeXT for forking and including the modifications for a MacOS-friendly Coreboot
+* Credit to ExtremeXT for forking and including the modifications for a MacOS-friendly Coreboot.
 * Credit to Ethan (ethanthesleepyone) for hosting builds and the MacOS firmware script originally. It's been taken down for the time being. 
 * Credit to 1revenger1 for creating a new VoodooPS2 for Keyboard HID mapping, fixing VoodooI2CElan, and loads of guidance. 
-* Credit to Coolstar for tuning Coreboot initially for Drallion 
+* Credit to Coolstar for tuning Coreboot initially for Drallion. 
