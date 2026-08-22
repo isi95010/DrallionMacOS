@@ -30,7 +30,7 @@ This laptop is from 2020 and uses a Comet Lake CPU. This is the only Comet Lake 
 |--------------------|----------------------|-----------------------------------------------------------------------------------------------|
 | WiFi               | Working              | See [OpenIntelWireless](https://openintelwireless.github.io). Seems to work more reliably by Fixing DMAR.                            |
 | Bluetooth          | Working              | See [OpenIntelWireless](https://openintelwireless.github.io)                                                                         |
-| Sleep/Wake         | Working              | See section about Coreboot fork to fix apps crashing when waking from sleep.                   |
+| Sleep/Wake         | Working              |                    |
 | Trackpad           | Working              | Works with newer commit of VoodooI2CElan. See section in [Input Devices](#input-devices).                       | 
 | Graphics Accel.    | Working              |                                                                                               |
 | Internal Speakers  | Working              | AppleALC.kext using layout-id 22 on Catalina+. Combo jack needs HDA Verb sent, IE `alc-verb 0x19 0x707 0x24`                            |
@@ -71,9 +71,13 @@ This document assumes you've already disabled write protect and successfuly flas
 - ~~The main issue with Drallion currently is that the machine randomly boots MacOS directly into sleep as it thinks the lid is closed. I am currently looking into a fix via SSDT, but this may not get resolved. To work around this, just close and open the lid late in the MacOS boot process, around where IG verbose begins to print.~~ Update: The fix is to add `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method. See [ssdt-reg-lid0](https://github.com/isi95010/DrallionMacOS/blob/main/acpi/ssdt-reg-lid0.dsl) for more.
 - ~~The next priority issue would be 3.5mm combo jack. Unfortunately output produces static, so in the future hopefully I'll have time to create a new Layout ID and push it to the AppleALC repo.~~ Combo jack needs alcverbs=1 boot-arg and an HDA Verb sent, IE `alc-verb 0x19 0x707 0x24`. Internal speakers and mic work fine with layout-id 22, however.
 - External video output is a bit janky currently. The HDMI port and both USB-C ports can output a signal (be sure to set the port type to HDMI on them all via DeviceProperties), but the USB-C port closest to the HDMI port shares the same framebuffer as the HDMI port. Oddly, you need to plug the video cable in twice per boot for a signal to output. ~~From there, the internal display will disable itself for some reason. You should be able to re-enable the internal display by closing and re-opening the lid.~~ Update: adding `Notify (\_SB.PCI0.LPCB.EC0.LID0, \LIDS)` to the _REG method also seems to eliminate the display turning off when an external screen is connected. 
-- The last item that comes to mind is that the power button doesn't work correctly within MacOS. You can forcefully power off by long pressing power or short pressing left Ctrl+power, but no dialog pops up to select the action, like a real MacBook. Hopefully I can come up with a fix, WIP. 
+- The last item that comes to mind is that the power button doesn't work correctly within MacOS. You can forcefully power off by long pressing power or short pressing left Ctrl+power, but no dialog pops up to select the action, like a real MacBook.  
  
->**Note**: MrChromebox coreboot 4.20 (5/15/2023 release) and higher is confirmed to cause issues with booting macOS on Chromebooks without taking specific steps. There are several methods to work around this, but the most simple recommendation is to build Coreboot with the mods in the [Chromeintosh Repo](https://github.com/Chromeintosh/coreboot). Don't forget to consult the Chrultrabook Docs site to preserve your VPD.
+>**Note**: ~~MrChromebox coreboot 4.20 (5/15/2023 release) and higher is confirmed to cause issues with booting macOS on Chromebooks without taking specific steps. There are several methods to work around this, but the most simple recommendation is to build Coreboot with the mods in the [Chromeintosh Repo](https://github.com/Chromeintosh/coreboot).~~
+>
+>**Update**: As of 2026, several updates to MrChromebox Coreboot have been implemented. Namely, you can now expose the Intel MEI to the OS simply by toggling the option in the CFR, which is similar to BIOS firmware setup. This solves the app crash when wake problem when the MEI was not seen by the OS.
+>
+>***Don't forget to consult the Chrultrabook Docs site to preserve your VPD.***
 
 ## Installation
 
@@ -81,14 +85,14 @@ This document assumes you've already disabled write protect and successfuly flas
 
 ### These steps are ***required*** for proper functioning.
 
-1. If you haven't already, flash MrChromebox Coreboot (ideally with the mods from Chromeintosh) onto your Chromebook after turning off hardware write protection using the [unplug battery method](https://docs.chrultrabook.com/docs/firmware/battery.html). The mods from Chromeintosh work in other OSes too, but building it this was has optimizations for MacOS. Again, they are still compatible with Windows and Linux.  
+1. If you haven't already, flash MrChromebox Coreboot (~~ideally with the mods from Chromeintosh~~) onto your Chromebook after turning off hardware write protection using the [unplug battery method](https://docs.chrultrabook.com/docs/firmware/battery.html). ~~The mods from Chromeintosh work in other OSes too, but building it this way has optimizations for MacOS. Again, they are still compatible with Windows and Linux.~~  
 2. Thoroughly read the [OpenCore Guide](https://dortania.github.io/OpenCore-Install-Guide/). Use ["Laptop Coffe Lake Plus and Comet Lake"](https://dortania.github.io/OpenCore-Install-Guide/config-laptop.plist/coffee-lake-plus.html) when ready to set up your EFI. Be sure to use the Debug version of OpenCore initially.
    * See [here](https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/debug.html) for OpenCore debugging info
    * Enable the SysReport quirk in order to dump your ACPI tables, especially your DSDT to run through SSDTTime to generate ***required SSDT's*** as mentioned in step 9. 
 3. Re-visit this guide when you're done setting up your EFI. There are a few things we need to tweak to ensure our Chromebook works with macOS. 
 4. Fixing CPU core (thread) definition and plugin-type as mentioned in Current Issues
-	* My recommended way: Build and flash the Chromeintosh fork of MrChromebox's Coreboot.
-	* Use SSDT-Plug-Alt.aml
+	* ~~My recommended way: Build and flash the Chromeintosh fork of MrChromebox's Coreboot.~~
+	* Simple method: Use SSDT-Plug-Alt.aml
 5. In your `config.plist`, under `Booter -> Quirks` set `ProtectMemoryRegions` to `TRUE` and (_THIS IS IMPORTANT_) `DevirtualiseMmio` to `FALSE`. Other than the defaults in the Dortania guide, it should look something like this in your `config.plist` when done correctly:
 
    | Quirk                | Type | Value    |
@@ -129,7 +133,7 @@ This document assumes you've already disabled write protect and successfuly flas
 7. **`MacBookPro15,4` works with Mojave 10.15.4 through Sonoma** with the proper SecureBootModel and APFS settings in your OpenCore config. Anything before or after those MacOS versions is not covered here. You may find a better suited SMBIOS to mimic or for unsupported future OS versions. Experiment as you wish. 
 8. It's recommended to use [1revenger1's fork of VoodooPS2](https://github.com/1Revenger1/VoodooPS2) which allows for mapping keys with HID Usages. You can see my SSDT here, but you'll still probably want to customize within MacOS to your liking.
 9. It's recommended to use SSDTTime to generate a fake EC (laptop verion), HPET (IRQ conflicts) and PNLF (requred for display backlight control). Be sure to copy any resulting rename patches from `oc_patches.plist` into your `config.plist` under `ACPI -> Patch`. 
-10. Map your USB ports before installing using Windows. If you don't want to install Windows, mapping can be done in WinPE. See [USBToolbox](https://github.com/USBToolBox). Remember you need the USBToolbox.kext *and* your generated UTBMap.kext.    
+10. Map your USB ports before installing MacOS using Windows. If you don't want to install Windows, mapping can be done in WinPE. See [USBToolbox](https://github.com/USBToolBox). Remember you need the USBToolbox.kext *and* your generated UTBMap.kext.    
 11. Snapshot (cmd + r) or (ctrl + r) your `config.plist`. 
 
     > **Warning**: Don't use "clean snapshot" (`ctrl/cmd+shift+r`) in Propertree after initially copying the sample as config.plist. This can **wipe** some work. Only do *regular* snapshots after first starting. (`ctrl/cmd+r`)
@@ -141,7 +145,7 @@ This document assumes you've already disabled write protect and successfuly flas
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ### Working around CPU changes to Coreboot
-Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting macOS will hang even if you think you've created a plugin-type SSDT. To fix this, build Coreboot for Drallion based on the Chromeintosh fork and the CPU address, among other things, is solved. Then you can use SSDTTime like the Dortania Guide suggests.
+~~Coreboot UEFI firmware 4.20 (5/15/2023 release) has a known issue where booting macOS will hang even if you think you've created a plugin-type SSDT. To fix this, build Coreboot for Drallion based on the Chromeintosh fork and the CPU address, among other things, is solved. Then you can use SSDTTime like the Dortania Guide suggests.~~ Solved by SSDT-Plug-ALT
 ### Input devices 
 - Keyboard
     - Use [1revenger1's fork of VoodooPS2](https://github.com/1Revenger1/VoodooPS2) 
